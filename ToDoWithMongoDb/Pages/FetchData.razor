@@ -1,0 +1,81 @@
+﻿@page "/fetchdata"
+@using ToDoWithMongoDb.Data
+@using ToDoWithMongoDb.Models;
+@inject WeatherForecastService ForecastService
+
+<PageTitle>Weather forecast</PageTitle>
+
+<h1>Weather forecast</h1>
+
+<p>This component demonstrates fetching data from a service.</p>
+
+@if (toDosList == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (C)</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in toDosList)
+            {
+                <tr>
+                    <td>@task.Id</td>
+                    <td>@task.Title</td>
+                    <td>@task.Content</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private WeatherForecast[]? forecasts;
+    private List<ToDoModel> toDosList = new List<ToDoModel>();
+    private ToDoModel modelTodo = new ToDoModel();
+    protected override async Task OnInitializedAsync()
+    {
+        forecasts = await ForecastService.GetForecastAsync(DateOnly.FromDateTime(DateTime.Now));
+
+        string connectionString = "mongodb://admin:password@localhost:27017";
+        string databaseName = "todoDb";
+        string collectionName = "todos";
+
+        var client = new MongoClient(connectionString);
+        var db = client.GetDatabase(databaseName);
+        var collection = db.GetCollection<ToDoModel>(collectionName);
+        var task = new ToDoModel
+            {
+                Title = "First Task To do",
+                Content = "This is the first task was written to test connection to mongo db"
+            };
+
+        //await collection.InsertOneAsync(task);
+        var results = await collection.FindAsync(_ => true);
+
+        foreach (var item in results.ToList())
+        {
+            modelTodo = new ToDoModel();
+            modelTodo.Id = item.Id;
+            modelTodo.Title = item.Title;
+            modelTodo.Content = item.Content;
+            toDosList.Add(modelTodo);
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            
+        }
+    }
+}
